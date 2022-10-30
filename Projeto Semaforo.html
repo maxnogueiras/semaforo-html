@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Prova 2</title>
+	</head>
+	
+	<body bgcolor="#1a1c1a">
+		<div id="fundo" style="width: 500; height: 500; display: flex; justify-content: center; align-items: center; position: relative;">
+			<div>
+				<canvas id="canvasTela" width="500" height="500" style="border:7px solid #3a3838"></canvas>
+			</div>
+			
+			<div style="position: absolute;">
+				<canvas id="canvasSemaforo" width="500" height="500" style="background-color: transparent;"></canvas>
+			</div>
+			
+			<div style="position: absolute;">
+				<canvas id="canvasCarro" width="500" height="500" style="background-color: transparent;"></canvas>
+            </div>
+
+            <div style="position: absolute;">
+				<canvas id="canvasTurn" width="500" height="500" style="background-color: transparent;"></canvas>
+			</div>
+			<div style="position: absolute;">
+				<canvas id="canvasLeftTurn" width="500" height="500" style="background-color: transparent;"></canvas>
+			</div>
+		</div>
+		
+		<script>
+			const canTela = document.getElementById('canvasTela');
+			const ctxTela = canTela.getContext('2d');
+
+			const canSem = document.getElementById('canvasSemaforo');
+			const ctxSem = canSem.getContext('2d');
+
+			const canCarro = document.getElementById('canvasCarro');
+			const ctxCarro = canCarro.getContext('2d');
+
+			const canTurn = document.getElementById('canvasTurn');
+			const ctxTurn = canTurn.getContext('2d');
+			
+			const canLeftTurn = document.getElementById('canvasLeftTurn');
+			const ctxLeftTurn = canLeftTurn.getContext('2d');
+
+			//CENÁRIO
+			var cenario = new Image();
+			cenario.src = 'citycrossroads.svg';
+			
+			//LUZES DO SEMÁFORO
+			var hGreenLight = new Image();
+			hGreenLight.src = 'Hgreenlight.svg';
+			var vGreenLight = new Image();
+			vGreenLight.src = 'Vgreenlight.svg';
+			var hYellowLight = new Image();
+			hYellowLight.src = 'Hyellowlight.svg';
+			var vYellowLight = new Image();
+			vYellowLight.src = 'Vyellowlight.svg';
+			var hRedLight = new Image();
+			hRedLight.src = 'Hredlight.svg';
+			var vRedLight = new Image();
+			vRedLight.src = 'Vredlight.svg';
+			
+			//CARROS DO SENTIDO HORIZONTAL E VERTICAL
+			var hCar1 = new Image();
+			hCar1.src = 'Hblackcar.svg';
+			var hCar2 = new Image();
+			hCar2.src = 'Hblacksuv.svg';
+			var hCar3 = new Image();
+			hCar3.src = 'Hbluecar.svg';
+			var hCar4 = new Image();
+			hCar4.src = 'Hredcar.svg';
+			var hCar5 = new Image();
+			hCar5.src = 'Hwhitecar.svg';
+			var hCar6 = new Image();
+			hCar6.src = 'Hwhitepickup.svg';
+			var hCar7 = new Image();
+			hCar7.src = 'Hyellowtruck.svg';
+			var hCar8 = new Image();
+			hCar8.src = 'Hpinkcar.svg';
+			var vCar1 = new Image();
+			vCar1.src = 'Vblackcar.svg';
+			var vCar2 = new Image();
+			vCar2.src = 'Vblacksuv.svg';
+			var vCar3 = new Image();
+			vCar3.src = 'Vbluecar.svg';
+			var vCar4 = new Image();
+			vCar4.src = 'Vredcar.svg';
+			var vCar5 = new Image();
+			vCar5.src = 'Vwhitecar.svg';
+			var vCar6 = new Image();
+			vCar6.src = 'Vwhitepickup.svg';
+			var vCar7 = new Image();
+			vCar7.src = 'Vyellowtruck.svg';
+			var vCar8 = new Image();
+			vCar8.src = 'Vpinkcar.svg';
+
+			var hCarList = [ hCar1, hCar2, hCar3, hCar4, hCar5, hCar6, hCar7, hCar8];
+			var vCarList = [ vCar1, vCar2, vCar3, vCar4, vCar5, vCar6, vCar7, vCar8];
+
+			//TAMANHO DOS SEMÁFOROS
+			hSemWidth = 47;
+			hSemHeight = 25;
+			vSemWidth = 25;
+			vSemHeight = 47;
+
+			//POSIÇÃO DO SEMÁFORO QUE CONTROLA O SENTIDO HORIZONTAL
+			const x_hLights = 163;
+			const y_hLights = 307;
+			
+			//POSIÇÃO DO SEMÁFORO QUE CONTROLA O SENTIDO VERTICAL
+			const x_vLights = 303;
+			const y_vLights = 307;
+
+			//STATUS DE LIBERAÇÃO DAS VIAS
+			hStatus = true;
+			vStatus = true;
+			var now = Date.now();
+			
+			//VARIÁVEIS DE CONTROLE DE CURVA
+			var isOn = true;
+			var count = 0;
+			var isOnLeft = true;
+			var countLeft = 0;
+			
+			//CLASSE CARRO
+			class Car{
+				constructor(orientation, way){
+					this.orientation = orientation;
+					this.way = way;
+					this.model = randomCar(orientation);
+					this.xPos = startXpos(orientation, way);
+					this.yPos = startYpos(orientation, way);
+					this.width = carWidth(orientation);
+					this.height = carHeight(orientation);
+					this.step = randomStep(way);
+				}
+			}
+
+			//CARROS INSTANCIADOS
+			var hCurrentCar = new Car('H', 'D');
+			var hCurrentCar2 = new Car('H', 'E');
+			var vCurrentCar = new Car('V', 'D');
+			var vCurrentCar2 = new Car('V', 'E');
+			
+			//IDENTIFICADR RANDOMICO DOS CARROS
+			function randomCar(orientation){
+				if(orientation == 'H') return hCarList[Math.floor(Math.random()*hCarList.length)];
+                if(orientation == 'V') return vCarList[Math.floor(Math.random()*vCarList.length)];
+			}
+
+			//VELOCIDADE RANDOMICA
+            function randomStep(way){
+                if(way == 'D') return Math.floor(Math.random() * 2) + 1;
+                if(way == 'E') return Math.floor(Math.random() * 2) + 2;
+            }
+
+			//POSICIONAMENTO DO VEÍCULO
+			function startXpos(orientation, way){
+				if(orientation == 'H') return -60;
+				if(orientation == 'V' && way == 'D') return 260;
+				if(orientation == 'V' && way == 'E') return 225;
+			}
+
+			function startYpos(orientation, way){
+				if(orientation == 'V') return 500;
+				if(orientation == 'H' && way == 'D') return 265;
+				if(orientation == 'H' && way == 'E') return 230;
+			}
+
+			//TAMANHO DO VEÍCULO
+			function carWidth(orientation){
+				if(orientation == 'H') return 60;
+				if(orientation == 'V') return 30;
+			}
+			
+			function carHeight(orientation){
+				if(orientation == 'H') return 30;
+				if(orientation == 'V') return 60;
+			}
+
+			//DESENHA O CENÁRIO
+			function drawCenario(){
+				ctxTela.drawImage(cenario, 0, 0, 500, 500);
+			}
+
+			//DESENHA OS SEMÁFOROS
+			function drawHlight(semaforo){
+				ctxSem.drawImage(semaforo, x_hLights, y_hLights, hSemWidth, hSemHeight);
+			}
+			function drawVlight(semaforo){
+				ctxSem.drawImage(semaforo, x_vLights, y_vLights, vSemWidth, vSemHeight);
+			}
+
+			//CADENCIAMENTO DOS SEMÁFOROS
+			function intervals(startTime, endTime){
+				if(Date.now() - now >= startTime*1000 && Date.now() - now <= endTime*1000) return true;
+				else return false;
+			}
+			function cadencia(){
+				if(Date.now() - now > 18000) now = Date.now();
+				else{
+					ctxSem.clearRect(x_hLights, y_hLights, hSemWidth, hSemHeight);
+					ctxSem.clearRect(x_vLights, y_vLights, vSemWidth, vSemHeight);
+					ctxCarro.restore();
+					if(intervals(0, 6)){
+						drawHlight(hRedLight);
+						drawVlight(vGreenLight);
+						hStatus = false;
+						vStatus = true;
+					}
+					else if(intervals(6, 8)){
+						drawHlight(hRedLight);
+						drawVlight(vYellowLight);
+						hStatus = false;
+						vStatus = true;	
+					}
+					else if(intervals(8, 9)){
+						drawHlight(hRedLight);
+						drawVlight(vRedLight);
+						hStatus = false;
+						vStatus = false;
+					}
+					else if(intervals(9, 15)){
+						drawHlight(hGreenLight);
+						drawVlight(vRedLight);
+						hStatus = true;
+						vStatus = false;
+					}
+					else if(intervals(15, 17)){
+						drawHlight(hYellowLight);
+						drawVlight(vRedLight);
+						hStatus = true;
+						vStatus = false;
+					}
+					else if(intervals(17, 18)){
+						drawHlight(hRedLight);
+						drawVlight(vRedLight);
+						hStatus = false;
+						vStatus = false;
+					}
+				}
+			}
+
+			//DESENHA OS CARROS NO SENTIDO HORIZONTAL
+			function hMove(){
+                if(!(hStatus == false && (hCurrentCar.xPos >= 100 && hCurrentCar.xPos <= 105))){
+					hClearWay(hCurrentCar);
+                    ctxCarro.drawImage(hCurrentCar.model, hCurrentCar.xPos, hCurrentCar.yPos, hCurrentCar.width, hCurrentCar.height);
+					hCurrentCar.xPos += hCurrentCar.step;
+					if(hCurrentCar.xPos > 560){
+						hCurrentCar = new Car('H', 'D');
+                    }
+					//console.log(hCurrentCar);
+                }
+				
+				//VIA QUE FAZ A CURVA OU NÃO
+				if(!(hStatus == false && (hCurrentCar2.xPos >= 100 && hCurrentCar2.xPos <= 105))){
+					if(hCurrentCar2.xPos < 170 || hCurrentCar2.step != 2){
+						hClearWay(hCurrentCar2);
+						ctxCarro.drawImage(hCurrentCar2.model, hCurrentCar2.xPos, hCurrentCar2.yPos, hCurrentCar2.width, hCurrentCar2.height);
+						hCurrentCar2.xPos += hCurrentCar2.step;
+					}
+					if(hCurrentCar2.xPos >= 170 && hCurrentCar2.step == 2){
+						hClearWay(hCurrentCar2);
+						turnLeft();
+					}
+					if(hCurrentCar2.xPos > 560){
+						if(hCurrentCar2.step == 2){
+							ctxLeftTurn.rotate(-(Math.PI/180 * 270)); 
+							countLeft = 0;
+						}
+						hCurrentCar2 = new Car('H', 'E');
+                    }
+					//console.log(hCurrentCar2);
+                }
+            }
+
+			//DESENHA OS CARROS NO SENTIDO VERTICAL
+			function vMove(){
+                if(!(vStatus == false && (vCurrentCar.yPos >= 355  && vCurrentCar.yPos <= 360))){
+					if(vCurrentCar.yPos > 290 || vCurrentCar.step != 5){
+						vClearWay(vCurrentCar);
+						ctxCarro.drawImage(vCurrentCar.model, vCurrentCar.xPos, vCurrentCar.yPos, vCurrentCar.width, vCurrentCar.height);
+						vCurrentCar.yPos -= vCurrentCar.step;
+					}
+					if(vCurrentCar.yPos <= 290 && vCurrentCar.step == 2){
+						vClearWay(vCurrentCar);
+						turn();
+					} 
+					if(vCurrentCar.yPos <  -120){
+						if(vCurrentCar.step == 2){
+							ctxTurn.rotate(Math.PI/180 * 270); 
+							count = 0;
+						}
+						vCurrentCar = new Car('V', 'D');
+                    }
+					//console.log(vCurrentCar);
+                }
+
+				//VIA QUE FAZ OU NÃO A CURVA
+				if(!(vStatus == false && (vCurrentCar2.yPos >= 355  && vCurrentCar2.yPos <= 360))){
+					vClearWay(vCurrentCar2);
+					ctxCarro.drawImage(vCurrentCar2.model, vCurrentCar2.xPos, vCurrentCar2.yPos, vCurrentCar2.width, vCurrentCar2.height);
+					vCurrentCar2.yPos -= vCurrentCar2.step;
+					if(vCurrentCar2.yPos < -120){
+						vCurrentCar2 = new Car('V', 'E');
+                    }
+					//console.log(vCurrentCar2);
+                }
+            }
+
+			//FAZ A CURVA PRA ESQUERDA
+			function turnLeft(){
+				if(isOnLeft == true) {ctxLeftTurn.translate(200, 205); isOnLeft = false;}
+				//ctxLeftTurn.fillStyle="rgb(0, 0, 0)"
+				//ctxLeftTurn.fillRect(0, 0, 1, -200);
+				if(countLeft < 30){
+					ctxLeftTurn.clearRect((hCurrentCar2.xPos - 200 - hCurrentCar2.step), (hCurrentCar2.yPos - 205), hCurrentCar2.width, hCurrentCar2.height);
+					ctxLeftTurn.rotate(-(Math.PI/180 * 3));
+					countLeft += 1;
+					hCurrentCar2.xPos -= hCurrentCar2.step;
+					ctxLeftTurn.drawImage(hCurrentCar2.model, hCurrentCar2.xPos - 200, hCurrentCar2.yPos - 205, hCurrentCar2.width, hCurrentCar2.height);
+				}
+				if(countLeft == 30){
+					ctxLeftTurn.clearRect((hCurrentCar2.xPos - 200 - hCurrentCar2.step), (hCurrentCar2.yPos - 205), hCurrentCar2.width, hCurrentCar2.height);
+					hCurrentCar2.xPos += hCurrentCar2.step;
+					ctxLeftTurn.drawImage(hCurrentCar2.model, hCurrentCar2.xPos - 200, hCurrentCar2.yPos - 205, hCurrentCar2.width, hCurrentCar2.height);
+				}
+
+			}
+			
+			//FAZ A CURVA PRA DIREITA
+			function turn(){
+				if(isOn == true) {ctxTurn.translate(315, 320); isOn = false;} //EXECUTA O TRANSLATE SOMENTE UMA VEZ
+				//ctxTurn.fillStyle="rgb(0, 0, 0)"
+				//ctxTurn.fillRect(0, 0, 200, 1);
+				if(count < 30){ //CONTROLE DE REPETIÇÃO
+					ctxTurn.clearRect(vCurrentCar.xPos - 315, (vCurrentCar.yPos - 320 + vCurrentCar.step), vCurrentCar.width, vCurrentCar.height); //LIMPA FRAME ANTERIOR
+					ctxTurn.rotate(Math.PI/180 * 3); //ROTACIONA MAIS 5 GRAUS A CADA CHAMADA (5*18 = 90 GRAUS)
+					count += 1; //CONTROLE DE REPETIÇÃO
+					vCurrentCar.yPos += vCurrentCar.step;
+					ctxTurn.drawImage(vCurrentCar.model, vCurrentCar.xPos - 315, vCurrentCar.yPos - 320, vCurrentCar.width, vCurrentCar.height); //DESENHA
+				}
+				if(count == 30){ //CURVA COMPLETA 90 GRAUS
+					ctxTurn.clearRect(vCurrentCar.xPos - 315, (vCurrentCar.yPos - 320 + vCurrentCar.step), vCurrentCar.width, vCurrentCar.height); //LIMPA FRAME ANTERIOR
+					vCurrentCar.yPos -= 6; //CARRO SOBE DE 6 EM 6
+					ctxTurn.drawImage(vCurrentCar.model, vCurrentCar.xPos - 315, vCurrentCar.yPos - 320, vCurrentCar.width, vCurrentCar.height); //DESENHA
+				}
+			}
+
+			//LIMPA O RASTRO HORIZONTAL DOS CARROS
+			function hClearWay(a){
+				ctxCarro.clearRect((a.xPos - a.step), a.yPos, a.width, a.height);
+			}
+
+            //LIMPA O RASTRO VERTICAL DOS CARROS
+			function vClearWay(a){
+				ctxCarro.clearRect(a.xPos, (a.yPos + a.step), a.width, a.height);
+			}
+
+			//ANIMA O CENÁRIO
+			function animate(){
+                hMove();
+				vMove();
+				cadencia();
+				requestAnimationFrame(animate);
+			}
+
+			//CARREGA E ANIMA O CENÁRIO
+			cenario.onload = function(){
+				drawCenario();
+                animate();
+			}
+		</script>
+	</body>
+</html>
